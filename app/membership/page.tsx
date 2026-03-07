@@ -132,36 +132,49 @@ export default function MembershipPage() {
   return (
     <main className="min-h-screen bg-background flex flex-col lg:flex-row">
       {/* Left: marketing panel */}
-      <section className="relative hidden lg:block lg:w-1/2 bg-black text-white">
-        <div className="absolute inset-0">
-          <div className="h-full w-full bg-gradient-to-br from-black via-black/70 to-black/40" />
-        </div>
-        <div className="relative h-full px-12 py-16 flex flex-col justify-center max-w-xl">
-          <p className="text-xs tracking-[0.25em] uppercase mb-4 opacity-80">
-            Spring Offer
-          </p>
-          <h1 className="text-4xl leading-tight font-semibold mb-6">
-            SPRING RESET:
-            <br />
-            UNLOCK $500 IN VALUE
-          </h1>
-          <p className="mb-4 text-sm">
-            Join now and receive a complimentary suite of services. Available
-            March only.
-          </p>
-          <ul className="space-y-1 text-sm mb-8">
-            <li>• 1 Equifit-style assessment</li>
-            <li>• 2 personal training or 2 Pilates sessions</li>
-            <li>• $200 credit towards retail or spa</li>
-          </ul>
-          <button
-            type="button"
-            className="text-xs underline underline-offset-4 text-white/80 hover:text-white w-fit"
-          >
-            Terms &amp; Conditions
-          </button>
-        </div>
-      </section>
+    <section className="relative hidden lg:block lg:w-1/2 bg-black text-white">
+    {/* Background */}
+    <div className="absolute inset-0">
+      <img
+        src="/images/seven1.webp"
+        alt="Fitness training"
+        className="w-full h-full object-cover"
+      />
+
+      <div className="absolute inset-0 bg-gradient-to-br from-black via-black/70 to-black/40" />
+    </div>
+
+    {/* Content */}
+    <div className="relative h-full px-12 py-16 flex flex-col justify-center max-w-xl">
+      <p className="text-xs tracking-[0.25em] uppercase mb-4 opacity-80">
+        Spring Offer
+      </p>
+
+      <h1 className="text-4xl leading-tight font-semibold mb-6">
+        SPRING RESET:
+        <br />
+        UNLOCK $500 IN VALUE
+      </h1>
+
+      <p className="mb-4 text-sm">
+        Join now and receive a complimentary suite of services. Available
+        March only.
+      </p>
+
+      <ul className="space-y-1 text-sm mb-8">
+        <li>• 1 Equifit-style assessment</li>
+        <li>• 2 personal training or 2 Pilates sessions</li>
+        <li>• $200 credit towards retail or spa</li>
+      </ul>
+
+      <button
+        type="button"
+        className="text-xs underline underline-offset-4 text-white/80 hover:text-white w-fit"
+      >
+        Terms &amp; Conditions
+      </button>
+    </div>
+  </section>
 
       {/* Right: steps & forms */}
       <section className="flex-1 w-full min-w-0 flex flex-col px-3 sm:px-6 lg:px-12 py-6 sm:py-8 lg:py-14">
