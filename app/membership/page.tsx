@@ -160,6 +160,8 @@ export default function MembershipPage() {
        Where wellness meets exclusivity. Experience a high-end wellness club that seamlessly blends luxury with athletic performance, creating an environment designed to help you achieve your goals without compromise.
       </p>
 
+    
+
       {/* <ul className="space-y-1 text-sm mb-8">
         <li>• 1 Equifit-style assessment</li>
         <li>• 2 personal training or 2 Pilates sessions</li>
@@ -1026,6 +1028,16 @@ function Step3ReviewPay(
         <Button type="button" className="w-full" onClick={onRestart}>
           Start over
         </Button>
+            <div className="mt-4 p-4 border border-dashed border-gray-300 rounded-md text-center">
+              <p className="text-sm mb-2">
+                Download our app using the QR code:
+              </p>
+              <img
+                src="/images/seven-qr-code.png" 
+                alt="QR code to download the app"
+                className="mx-auto w-32 h-32"
+              />
+            </div>
       </div>
     );
   }
