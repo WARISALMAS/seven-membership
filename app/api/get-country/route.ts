@@ -1,22 +1,20 @@
-import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
-export async function GET(req: NextRequest) {
+export async function GET(request: Request) {
   try {
-    // Use a server-side geo IP API
-    const ip = req.headers.get("x-forwarded-for") || "8.8.8.8"; // fallback IP
-    const response = await fetch(`https://ipwho.is/${ip}`);
-    const data = await response.json();
+    // Get client IP from headers (if behind a proxy like Vercel)
+    const ip = request.headers.get("x-forwarded-for") || request.headers.get("host") || "8.8.8.8";
 
-    return new Response(
-      JSON.stringify({
-        country: data.country_code || "US",
-      }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
-    );
+    // Call ipapi.co with IP
+    const res = await fetch(`https://ipapi.co/${ip}/json/`);
+    if (!res.ok) throw new Error("Failed to fetch country");
+
+    const data = await res.json();
+
+    // Return lowercase country code
+    return NextResponse.json({ country: data.country_code?.toLowerCase() || "us" });
   } catch (err) {
-    return new Response(JSON.stringify({ country: "US" }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    console.error("Error detecting country:", err);
+    return NextResponse.json({ country: "us" }); // fallback
   }
 }

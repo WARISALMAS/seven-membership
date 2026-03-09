@@ -341,23 +341,18 @@ function Step1SelectClub(
   const [attempted, setAttempted] = useState(false);
   const [country, setCountry] = useState(''); // Fallback
 
-   useEffect(() => {
-    fetch('https://ipapi.co')
-      .then((res) => res.json())
-      .then((data) => {
-        console.log(data);
-        if (data.country_code) {
-          setCountry(data.country_code.toLowerCase());
-        }
+  useEffect(() => {
+    fetch("/api/get-country")
+      .then(res => res.json())
+      .then(data => {
+        console.log("Detected country from server:", data.country);
+        setCountry(data.country || "us");
       })
-      .catch(() => console.log("Using default fallback"));
+      .catch(err => {
+        console.error("Error detecting country:", err);
+        setCountry("us");
+      });
   }, []);
-
-
-
-
-
-
 
   const {
     data: locations = [],
@@ -559,24 +554,6 @@ function Step1SelectClub(
           )}
         </div>
         <div className="space-y-1">
-          {/* <Input
-            placeholder="Phone Number"
-            value={phone}
-            onChange={(e) => onChangePhone(e.target.value)}
-            className={phoneError ? "border-destructive" : ""}
-            aria-invalid={!!phoneError}
-            aria-describedby={phoneError ? "phone-error" : undefined}
-          /> */}
-
-            {/* <PhoneInput
-              defaultCountry={country}
-              value={phone}
-              onChange={(phone) => onChangePhone(phone)}
-              inputClassName="w-full h-11 border-border rounded-md text-sm"
-              countrySelectorStyleProps={{
-                buttonClassName: "h-11 border-border rounded-l-md bg-muted/50",
-              }}
-            /> */}
 
             <PhoneInput
               key={country} 
