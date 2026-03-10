@@ -1256,7 +1256,7 @@ function Step3ReviewPay(
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           location: club.name, // "Dubai", "Ibiza", "Gray Dubai"
-          amount: totalAfterDiscount || baseAmount,
+          amount: effectiveTotal || baseAmount,
           currency: plan.currency,
           description: plan.name,
           paymentMethodId,
