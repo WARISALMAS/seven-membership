@@ -62,8 +62,6 @@ function getStripePublishableKeyForClub(club?: Club | null): string {
   if (!club) {
     return "";
   }
-  // console.log("getStripePublishableKeyForClub");
-  // console.log(club);
 
   const rawName = club.name ?? "";
   const name = rawName.toLowerCase().trim();
@@ -77,13 +75,10 @@ function getStripePublishableKeyForClub(club?: Club | null): string {
   } else if (name =="ibiza") {
     key = STRIPE_PK_IBIZA;
     bucket = "ibiza";
-  } else {
-    // Default all other clubs to Dubai / Seven account
+  }  else if (name =="dubai") {
     key = STRIPE_PK_DUBAI;
     bucket = "dubai";
   }
-  console.log("key=========");
-  console.log(key)
   return key;
 }
 
