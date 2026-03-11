@@ -52,6 +52,7 @@ async function getZohoAccessToken(): Promise<string> {
 
 interface CreateZohoSubscriptionBody {
   memberId?: string
+  locationId?: string
   planId?: string
   startDate?: string
   endDate?: string
@@ -79,12 +80,12 @@ export async function POST(request: Request) {
       setupFee,
       paymentMode,
       autoRenew,
-      cardId,
       freezeDaysQuota,
       paymentReference,
       paymentGatewayFee,
       couponId,
       couponDiscount,
+      locationId,
     } = body
 
     if (!memberId || !planId || !startDate || !endDate || !paymentReference) {
@@ -103,11 +104,11 @@ export async function POST(request: Request) {
       Subscription_Mode: 'Online',
       Payment_Mode: paymentMode ?? 'Stripe',
       Payment_Reference: paymentReference,
+      Location: locationId,
     }
 
     if (typeof setupFee === 'number') record.Setup_Fee = setupFee
     if (typeof autoRenew === 'boolean') record.Auto_Renew = autoRenew
-    if (cardId) record.Card_ID = String(cardId)
     if (typeof freezeDaysQuota === 'number') record.Freeze_Days_Quota = freezeDaysQuota
     if (typeof paymentGatewayFee === 'number') record.Payment_Gateway_Fee = paymentGatewayFee
     if (couponId) record.Coupon_Code = couponId

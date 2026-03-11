@@ -16,7 +16,7 @@ export default function LandingPage() {
     return (
       <div style={{ padding: 20, maxWidth: 400, margin: "auto", textAlign: "center" }}>
         <h2>🎉 Payment Successful!</h2>
-        <p>Your membership has been created. Thank you for joining Seven!</p>
+        <p>Your membership has been created. Thank you for joining SEVEN!</p>
         <button onClick={() => window.location.replace("/")}>Go to Home</button>
       </div>
     );
