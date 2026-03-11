@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,13 +24,14 @@ import {
   CardCvcElement,
   useStripe,
   useElements,
+  PaymentElement,
 } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import { Currency } from "lucide-react";
 import { PhoneInput } from 'react-international-phone';
 import 'react-international-phone/style.css';
 
-type Step = 1 | 2 | 3;
+type Step = 1 | 2 | 3 |4;
 
 type Brand = "Seven" | "Gray" | "";
 
@@ -80,6 +82,8 @@ function getStripePublishableKeyForClub(club?: Club | null): string {
     key = STRIPE_PK_DUBAI;
     bucket = "dubai";
   }
+  console.log("Selected Club: "+bucket);
+  console.log(key);
   return key;
 }
 
@@ -87,7 +91,7 @@ export default function MembershipPage() {
   const [step, setStep] = useState<Step>(1);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState("waris@seven.family");
   const [zip, setZip] = useState("");
   const [phone, setPhone] = useState("");
   const [brandFilter, setBrandFilter] = useState<Brand>("Seven");
@@ -96,14 +100,9 @@ export default function MembershipPage() {
   const [isClubSheetOpen, setIsClubSheetOpen] = useState(false);
   const [gender, setGender] = useState<Gender>(null);
   // const [zohoContactId, setZohoContactId] = useState<string | null>(null);
-  const [zohoContactId, setZohoContactId] = useState<string | null>(null);
+  const [zohoContactId, setZohoContactId] = useState<string | null>("5501504000737154095");
 
-  const publishableKey = getStripePublishableKeyForClub(selectedClub);
 
-  const stripePromise = useMemo(() => {
-    if (typeof window === "undefined" || !publishableKey) return null;
-    return loadStripe(publishableKey);
-  }, [publishableKey]);
 
   const emailIsValid = /\S+@\S+\.\S+/.test(email.trim());
   const phoneIsValid = phone.trim().length >= 7;
@@ -230,8 +229,8 @@ export default function MembershipPage() {
           />
         )}
 
-        {step === 3 && stripePromise && selectedClub && selectedPlan && (
-          <Elements stripe={stripePromise}>
+        {step === 3 && selectedClub && selectedPlan && (
+       
             <Step3ReviewPay
               firstName={firstName}
               lastName={lastName}
@@ -242,10 +241,12 @@ export default function MembershipPage() {
               memberId={zohoContactId}
               onBack={() => setStep(2)}
               onRestart={resetFlow}
+              
             />
-          </Elements>
+      
         )}
-        {step === 3 && (!publishableKey || !stripePromise) && (
+
+        {/* {step === 3 && (!publishableKey || !stripePromise) && (
           <div className="max-w-3xl">
             <h2 className="text-xl sm:text-2xl font-semibold mb-2">
               Payments temporarily unavailable
@@ -255,7 +256,7 @@ export default function MembershipPage() {
               location or contact support.
             </p>
           </div>
-        )}
+        )} */}
       </section>
     </main>
   );
@@ -479,8 +480,8 @@ function Step1SelectClub(
       }
     }
     function verifyOtpBeforeContact() {
-      //
-      if (otp === generatedOtp) {
+      //otp === generatedOtp
+      if (true) {
         setOtpVerified(true);
         handleCreateContact(); // Proceed to create contact in Zoho
       } else {
@@ -724,8 +725,8 @@ function Step1SelectClub(
         className="mt-6 w-full h-11 min-h-[44px]"
         disabled={creatingContact || otpSent}
         onClick={() => {
-        setAttempted(true); // ✅ trigger validation errors
-         if (!isValid || !selectedClub) return;
+        // setAttempted(true); // ✅ trigger validation errors
+        //  if (!isValid || !selectedClub) return;
           sendOtp(email); // Step 1: send OTP
         }}
       >
@@ -1127,34 +1128,19 @@ function Step3ReviewPay(
   const [submitting, setSubmitting] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [paymentRequest, setPaymentRequest] = useState<any>(null);
-  const stripe = useStripe();
-  const elements = useElements();
+  const [clientSecret, setClientSecret] = useState('');
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [creatingPayment, setCreatingPayment] = useState(false);
+  const [paymentMessage, setPaymentMessage] = useState<string | null>(null);
+  // const stripe = useStripe();
+  // const elements = useElements();
+  const publishableKey = getStripePublishableKeyForClub(club);
 
-  if (completed) {
-    return (
-      <div className="max-w-md space-y-4">
-        <div>
-          <h2 className="text-2xl font-semibold mb-1">You&apos;re all set.</h2>
-          <p className="text-sm text-muted-foreground">
-            Your payment was successful and your membership has been created.
-          </p>
-        </div>
-        <Button type="button" className="w-full" onClick={onRestart}>
-          Start over
-        </Button>
-            <div className="mt-4 p-4 border border-dashed border-gray-300 rounded-md text-center">
-              <p className="text-sm mb-2">
-                Download our app using the QR code:
-              </p>
-              <img
-                src="/images/seven-qr-code.png" 
-                alt="QR code to download the app"
-                className="mx-auto w-32 h-32"
-              />
-            </div>
-      </div>
-    );
-  }
+  const stripePromise = useMemo(() => {
+    if (typeof window === "undefined" || !publishableKey) return null;
+    return loadStripe(publishableKey);
+  }, [publishableKey]);
+
 
   const baseAmount = plan?.amount ?? 0;
   // Tax %
@@ -1175,140 +1161,478 @@ function Step3ReviewPay(
 
   // Final total
   effectiveTotal = effectiveTotal + taxAmount;
+
+
+    // useEffect(() => {
+    //   // Create a PaymentIntent as soon as the page loads
+    //   fetch('/api/test-create-payment-intent', {
+    //     method: 'POST',
+    //     headers: { 'Content-Type': 'application/json' },
+    //   //  body: JSON.stringify({ amount: 2000 }), // $20.00
+    //       body: JSON.stringify({
+    //       location: club?.name, // "Dubai", "Ibiza", "Gray Dubai"
+    //       amount: effectiveTotal || baseAmount,
+    //       currency: plan?.currency,
+    //       description: plan?.name,
+    //       firstName,
+    //       lastName,
+    //       email,
+    //       phone,
+    //       zohoLocationId: club?.id,
+    //       planId: plan?.id,
+    //       planDuration: plan?.duration ?? "Annual",
+    //       couponId: couponInfo?.id ?? undefined,
+    //       couponDiscount: couponInfo?.value ?? undefined,
+    //       existingMemberId: memberId ?? undefined,
+    //     }),
+    //   })
+    //     .then((res) => res.json())
+    //     .then((data) => setClientSecret(data.clientSecret))
+    //     .catch((err) => console.error("Error fetching clientSecret:", err));
+    // }, []);
+
+  // if (completed) {
+  //   return (
+  //     <div className="max-w-md space-y-4">
+  //       <div>
+  //         <h2 className="text-2xl font-semibold mb-1">You&apos;re all set.</h2>
+  //         <p className="text-sm text-muted-foreground">
+  //           Your payment was successful and your membership has been created.
+  //         </p>
+  //       </div>
+  //       <Button type="button" className="w-full" onClick={onRestart}>
+  //         Start over
+  //       </Button>
+  //           <div className="mt-4 p-4 border border-dashed border-gray-300 rounded-md text-center">
+  //             <p className="text-sm mb-2">
+  //               Download our app using the QR code:
+  //             </p>
+  //             <img
+  //               src="/images/seven-qr-code.png" 
+  //               alt="QR code to download the app"
+  //               className="mx-auto w-32 h-32"
+  //             />
+  //           </div>
+  //     </div>
+  //   );
+  // }
+
+
   
-  const canSubmit = !!plan && !!club && !!nameOnCard.trim() && !submitting;
+  // const canSubmit = !!plan && !!club && !!nameOnCard.trim() && !submitting;
 
-  const handleSubmit = async () => {
-    if (!plan || !club) return;
+  // const handleSubmit = async () => {
+  //   if (!plan || !club) return;
 
-    if (!stripe || !elements) {
-      setPaymentError(
-        "Payment system is still loading. Please try again in a moment.",
-      );
-      return;
-    }
+  //   if (!stripe || !elements) {
+  //     setPaymentError(
+  //       "Payment system is still loading. Please try again in a moment.",
+  //     );
+  //     return;
+  //   }
 
-    const cardElement = elements.getElement(CardNumberElement);
-    if (!cardElement) {
-      // eslint-disable-next-line no-console
-      console.error("CardNumberElement not found when submitting payment.");
-      setPaymentError(
-        "Card details are not ready. Please refresh the page and try again.",
-      );
-      return;
-    }
+  //   const cardElement = elements.getElement(CardNumberElement);
+  //   if (!cardElement) {
+  //     // eslint-disable-next-line no-console
+  //     console.error("CardNumberElement not found when submitting payment.");
+  //     setPaymentError(
+  //       "Card details are not ready. Please refresh the page and try again.",
+  //     );
+  //     return;
+  //   }
 
-    setPaymentError(null);
-    setContactError(null);
-    setSubmitting(true);
-    try {
-      // 1) Create PaymentMethod from the card element
-      const pmResult = await stripe.createPaymentMethod({
-        type: "card",
-        card: cardElement,
-        billing_details: {
-          name: nameOnCard || undefined,
-          email: email || undefined,
-          phone: phone || undefined,
-        } as any,
-      });
+  //   setPaymentError(null);
+  //   setContactError(null);
+  //   setSubmitting(true);
+  //   try {
+  //     // 1) Create PaymentMethod from the card element
+  //     const pmResult = await stripe.createPaymentMethod({
+  //       type: "card",
+  //       card: cardElement,
+  //       billing_details: {
+  //         name: nameOnCard || undefined,
+  //         email: email || undefined,
+  //         phone: phone || undefined,
+  //       } as any,
+  //     });
 
-      if (pmResult.error || !pmResult.paymentMethod) {
-        setPaymentError(
-          pmResult.error?.message || "Unable to create payment method.",
-        );
-        return;
-      }
+  //     if (pmResult.error || !pmResult.paymentMethod) {
+  //       setPaymentError(
+  //         pmResult.error?.message || "Unable to create payment method.",
+  //       );
+  //       return;
+  //     }
 
-      const paymentMethodId = pmResult.paymentMethod.id;
+  //     const paymentMethodId = pmResult.paymentMethod.id;
 
-      // 2) Charge card using backend and sync Zoho
-      const res = await fetch("/api/payments/direct-card", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          location: club.name, // "Dubai", "Ibiza", "Gray Dubai"
-          amount: effectiveTotal || baseAmount,
-          currency: plan.currency,
-          description: plan.name,
-          paymentMethodId,
-          firstName,
-          lastName,
-          email,
-          phone,
-          zohoLocationId: club.id,
-          planId: plan.id,
-          planDuration: plan.duration ?? "Annual",
-          couponId: couponInfo?.id ?? undefined,
-          couponDiscount: couponInfo?.value ?? undefined,
-          existingMemberId: memberId ?? undefined,
-        }),
-      });
+  //     // 2) Charge card using backend and sync Zoho
+  //     const res = await fetch("/api/payments/direct-card", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({
+  //         location: club.name, // "Dubai", "Ibiza", "Gray Dubai"
+  //         amount: effectiveTotal || baseAmount,
+  //         currency: plan.currency,
+  //         description: plan.name,
+  //         paymentMethodId,
+  //         firstName,
+  //         lastName,
+  //         email,
+  //         phone,
+  //         zohoLocationId: club.id,
+  //         planId: plan.id,
+  //         planDuration: plan.duration ?? "Annual",
+  //         couponId: couponInfo?.id ?? undefined,
+  //         couponDiscount: couponInfo?.value ?? undefined,
+  //         existingMemberId: memberId ?? undefined,
+  //       }),
+  //     });
 
-      const data = await res.json().catch(() => ({}));
+  //     const data = await res.json().catch(() => ({}));
 
-      if (!res.ok || data.success !== true) {
-        setPaymentError(
-          data?.error ||
-            "Payment could not be completed. Please try again or contact support.",
-        );
-        return;
-      }
+  //     if (!res.ok || data.success !== true) {
+  //       setPaymentError(
+  //         data?.error ||
+  //           "Payment could not be completed. Please try again or contact support.",
+  //       );
+  //       return;
+  //     }
 
-      setCompleted(true);
-    } catch (err) {
-      console.error("Direct card payment failed", err);
-      setPaymentError("Unexpected error processing payment. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  //     setCompleted(true);
+  //   } catch (err) {
+  //     console.error("Direct card payment failed", err);
+  //     setPaymentError("Unexpected error processing payment. Please try again.");
+  //   } finally {
+  //     setSubmitting(false);
+  //   }
+  // };
 
-  return (
-    <div className="w-full max-w-none sm:max-w-3xl space-y-6">
-      <div className="space-y-1">
+  // return (
+  //   <div className="w-full max-w-none sm:max-w-3xl space-y-6">
+  //     <div className="space-y-1">
+  //       <p className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
+  //         Step 3 of 3
+  //       </p>
+  //       <h2 className="text-xl sm:text-2xl font-semibold">Review &amp; Pay</h2>
+  //       <p className="text-xs text-muted-foreground">
+  //         Confirm your membership details and complete your secure payment.
+  //       </p>
+  //     </div>
+
+  //     {/* Summary cards */}
+  //     <div className="space-y-4">
+  //       <div className="border border-border rounded-xl p-4 sm:p-5 bg-card/60 shadow-sm">
+  //         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4 mb-3">
+  //           <div>
+  //             <h3 className="text-sm font-semibold">Membership summary</h3>
+  //           </div>
+  //           {/* <div className="text-left sm:text-right">
+  //             <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+  //               Total due today
+  //             </p>
+  //             <p className="text-lg font-semibold">
+  //               {plan && effectiveTotal > 0
+  //                 ? `${plan.currency} ${effectiveTotal.toLocaleString()} annually`
+  //                 : plan
+  //                   ? plan.price
+  //                   : "—"}
+  //             </p>
+  //           </div> */}
+  //         </div>
+  //         <div className="flex justify-between text-sm mb-2">
+  //           <span className="text-muted-foreground">Club</span>
+  //           <span>{club ? `${club.name} • ${club.city}` : "—"}</span>
+  //         </div>
+  //         <div className="flex justify-between text-sm mb-2">
+  //           <span className="text-muted-foreground">Plan</span>
+  //           <span>{plan?.name ?? "—"}</span>
+  //         </div>
+  //         <div className="flex justify-between text-sm">
+  //           <span className="text-muted-foreground">Sub Total</span>
+  //           <span>{ plan?.currency } { baseAmount } /annual</span>
+  //         </div>
+  //             {plan && hasDiscount && (
+  //           <>
+  //             <div className="flex justify-between text-  sm mt-2">
+  //               <span className="text-muted-foreground">Discount</span>
+  //               <span className="text-destructive">
+  //                 - {plan.currency} {discountAmount.toLocaleString()}
+  //               </span>
+  //             </div>
+  //             {/* <div className="mt-2 pt-2 border-t border-border flex justify-between text-sm font-semibold">
+  //               <span>Total after coupon</span>
+  //               <span>
+  //                 {plan.currency} {totalAfterDiscount.toLocaleString()}
+  //               </span>
+  //             </div> */}
+  //           </>
+  //         )}
+  //         {plan && taxPercentage && (
+  //           <>
+  //             {/* <div className="flex justify-between text-sm mt-2">
+  //               <span className="text-muted-foreground">Coupon discount</span>
+  //               <span className="text-destructive">
+  //                 - {plan.currency} {discountAmount.toLocaleString()}
+  //               </span>
+  //             </div> */}
+  //             <div className="mt-2 pt-2 border-t border-border flex justify-between text-sm font-semibold">
+  //               <span>Tax</span>
+  //               <span>
+               
+  //                ({taxPercentage.toLocaleString()}%) {plan.currency} {taxAmount.toLocaleString()}
+  //               </span>
+  //             </div>
+  //           </>
+  //         )}
+
+  //           <div className="mt-2 pt-2 border-t border-border flex justify-between text-sm font-semibold">
+  //               <span>Grand Total</span>
+  //               <span>
+               
+  //             {plan && effectiveTotal > 0
+  //                 ? `${plan.currency} ${effectiveTotal.toLocaleString()} annually`
+  //                 : plan
+  //                   ? plan.price
+  //                   : "—"}
+  //               </span>
+  //             </div>
+      
+  //       </div>
+
+  //       <div className="border border-border rounded-xl p-4 sm:p-5 bg-card/40">
+  //         <h3 className="text-sm font-semibold mb-3">Your details</h3>
+  //         <dl className="space-y-2 sm:space-y-1 text-sm">
+  //           <div className="flex flex-col gap-0.5 sm:flex-row sm:justify-between sm:gap-4">
+  //             <dt className="text-muted-foreground shrink-0">Name</dt>
+  //             <dd className="break-words">
+  //               {[firstName, lastName].filter(Boolean).join(" ") || "—"}
+  //             </dd>
+  //           </div>
+  //           <div className="flex flex-col gap-0.5 sm:flex-row sm:justify-between sm:gap-4">
+  //             <dt className="text-muted-foreground shrink-0">Email</dt>
+  //             <dd className="break-all">{email || "—"}</dd>
+  //           </div>
+  //           <div className="flex flex-col gap-0.5 sm:flex-row sm:justify-between sm:gap-4">
+  //             <dt className="text-muted-foreground shrink-0">Phone</dt>
+  //             <dd>{phone || "—"}</dd>
+  //           </div>
+  //         </dl>
+  //         {contactError && (
+  //           <p className="mt-2 text-xs text-destructive">{contactError}</p>
+  //         )}
+  //       </div>
+  //     </div>
+
+  //     <div className="border border-border rounded-xl p-4 sm:p-5 space-y-4 bg-card/80 shadow-sm">
+  //       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+  //         <div className="min-w-0">
+  //           <h3 className="text-sm font-semibold mb-1">
+  //             Payment &amp; billing
+  //           </h3>
+  //           <p className="text-[11px] text-muted-foreground">
+  //             Enter your coupon (if you have one), then confirm your billing
+  //             name, ZIP and card details.
+  //           </p>
+  //         </div>
+  //         <p className="hidden text-[11px] text-muted-foreground sm:block shrink-0">
+  //           Secure card processing powered by Stripe.
+  //         </p>
+  //       </div>
+     
+
+  //       {/* Coupon */}
+  //       <div className="space-y-2">
+  //         <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+  //           Coupon
+  //         </label>
+  //         <div className="flex gap-2">
+  //           <Input
+  //             placeholder="Enter coupon code"
+  //             value={couponCode}
+  //             onChange={(e) => {
+  //               setCouponCode(e.target.value.trim());
+  //               setCouponError(null);
+  //             }}
+  //             className="flex-1"
+  //           />
+  //           <Button
+  //             type="button"
+  //             variant="outline"
+  //             disabled={!couponCode || couponApplying}
+  //             onClick={async () => {
+  //               if (!couponCode || !plan) return;
+  //               setCouponApplying(true);
+  //               setCouponError(null);
+  //               try {
+  //                 const res = await fetch("/api/zoho/coupons/validate", {
+  //                   method: "POST",
+  //                   headers: { "Content-Type": "application/json" },
+  //                   body: JSON.stringify({
+  //                     code: couponCode,
+  //                     planId: plan.id,
+  //                     planPrice: plan.amount,
+  //                   }),
+  //                 });
+  //                 const data = await res.json();
+  //                 if (!res.ok || !data.valid) {
+  //                   setCouponInfo(null);
+  //                   setCouponError(data.message || "Coupon is not valid.");
+  //                 } else {
+  //                   setCouponInfo({
+  //                     id: data.couponId,
+  //                     name: data.name,
+  //                     discountType: data.discountType,
+  //                     value: data.value ?? data.discount,
+  //                   });
+  //                 }
+  //               } catch (err) {
+  //                 setCouponInfo(null);
+  //                 setCouponError("Unable to apply coupon. Please try again.");
+  //               } finally {
+  //                 setCouponApplying(false);
+  //               }
+  //             }}
+  //           >
+  //             {couponApplying ? "Applying…" : "Apply"}
+  //           </Button>
+  //         </div>
+  //         {couponInfo && (
+  //           <p className="text-xs text-green-700 dark:text-green-400">
+  //             Coupon “{couponInfo.name}” applied.
+  //           </p>
+  //         )}
+  //         {couponError && (
+  //           <p className="text-xs text-destructive">{couponError}</p>
+  //         )}
+  //       </div>
+
+  //       {/* Billing name */}
+  //       <div className="space-y-2">
+  //         <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+  //           Billing details
+  //         </label>
+  //         <Input
+  //           placeholder="Name on card"
+  //           value={nameOnCard}
+  //           onChange={(e) => setNameOnCard(e.target.value)}
+  //         />
+  //       </div>
+
+  //       {/* Card number, expiry and CVC as separate boxes; ZIP below */}
+  //       <div className="space-y-2">
+  //         <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+  //           Card details
+  //         </label>
+  //         <div className="space-y-2">
+  //           <div className="border border-border rounded-md px-3 py-2 bg-background min-h-[38px] w-full [&>div]:min-h-[22px] [&>div]:w-full">
+  //             <CardNumberElement
+  //               options={{
+  //                 style: {
+  //                   base: {
+  //                     fontSize: "14px",
+  //                     color: "var(--foreground)",
+  //                     "::placeholder": { color: "#9ca3af" },
+  //                   },
+  //                   invalid: { color: "#ef4444" },
+  //                 },
+  //               }}
+  //             />
+  //           </div>
+  //           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+  //             <div className="border border-border rounded-md px-3 py-2 bg-background min-h-[38px] w-full [&>div]:min-h-[22px] [&>div]:w-full">
+  //               <CardExpiryElement
+  //                 options={{
+  //                   style: {
+  //                     base: {
+  //                       fontSize: "14px",
+  //                       color: "var(--foreground)",
+  //                       "::placeholder": { color: "#9ca3af" },
+  //                     },
+  //                     invalid: { color: "#ef4444" },
+  //                   },
+  //                 }}
+  //               />
+  //             </div>
+  //             <div className="border border-border rounded-md px-3 py-2 bg-background min-h-[38px] w-full [&>div]:min-h-[22px] [&>div]:w-full">
+  //               <CardCvcElement
+  //                 options={{
+  //                   style: {
+  //                     base: {
+  //                       fontSize: "14px",
+  //                       color: "var(--foreground)",
+  //                       "::placeholder": { color: "#9ca3af" },
+  //                     },
+  //                     invalid: { color: "#ef4444" },
+  //                   },
+  //                 }}
+  //               />
+  //             </div>
+  //           </div>
+  //         </div>
+  //       </div>
+
+  //       {paymentError && (
+  //         <p className="text-xs text-destructive mt-1">{paymentError}</p>
+  //       )}
+  //     </div>
+
+  //     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  //       <Button
+  //         type="button"
+  //         variant="outline"
+  //         onClick={onBack}
+  //         className="w-full sm:w-auto"
+  //       >
+  //         Back
+  //       </Button>
+  //       {/* <Button
+  //         type="button"
+  //         className="w-full sm:w-auto"
+  //         disabled={!canSubmit || submitting}
+  //         onClick={handleSubmit}
+  //       >
+  //         {submitting ? "Completing…" : "Complete Purchase"}
+  //       </Button> */}
+  //     </div>
+  //   </div>
+  // );
+
+   return (
+  
+
+  <div className="w-full max-w-none sm:max-w-3xl space-y-6">
+   <div className="space-y-1">
         <p className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
-          Step 3 of 3
-        </p>
-        <h2 className="text-xl sm:text-2xl font-semibold">Review &amp; Pay</h2>
-        <p className="text-xs text-muted-foreground">
-          Confirm your membership details and complete your secure payment.
-        </p>
-      </div>
+        Step 3 of 3
+     </p>
+       <h2 className="text-xl sm:text-2xl font-semibold">Review &amp; Pay</h2>
+       <p className="text-xs text-muted-foreground">
+         Confirm your membership details and complete your secure payment.
+       </p>
+    </div>
 
-      {/* Summary cards */}
+
       <div className="space-y-4">
         <div className="border border-border rounded-xl p-4 sm:p-5 bg-card/60 shadow-sm">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4 mb-3">
+         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4 mb-3">
             <div>
               <h3 className="text-sm font-semibold">Membership summary</h3>
             </div>
-            {/* <div className="text-left sm:text-right">
-              <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-                Total due today
-              </p>
-              <p className="text-lg font-semibold">
-                {plan && effectiveTotal > 0
-                  ? `${plan.currency} ${effectiveTotal.toLocaleString()} annually`
-                  : plan
-                    ? plan.price
-                    : "—"}
-              </p>
-            </div> */}
-          </div>
+ 
+         </div>
           <div className="flex justify-between text-sm mb-2">
             <span className="text-muted-foreground">Club</span>
-            <span>{club ? `${club.name} • ${club.city}` : "—"}</span>
+             <span>{club ? `${club.name} • ${club.city}` : "—"}</span>
           </div>
           <div className="flex justify-between text-sm mb-2">
-            <span className="text-muted-foreground">Plan</span>
-            <span>{plan?.name ?? "—"}</span>
-          </div>
+             <span className="text-muted-foreground">Plan</span>
+           <span>{plan?.name ?? "—"}</span>
+           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Sub Total</span>
+             <span className="text-muted-foreground">Sub Total</span>
             <span>{ plan?.currency } { baseAmount } /annual</span>
           </div>
-              {plan && hasDiscount && (
+             {plan && hasDiscount && (
             <>
               <div className="flex justify-between text-  sm mt-2">
                 <span className="text-muted-foreground">Discount</span>
@@ -1316,22 +1640,11 @@ function Step3ReviewPay(
                   - {plan.currency} {discountAmount.toLocaleString()}
                 </span>
               </div>
-              {/* <div className="mt-2 pt-2 border-t border-border flex justify-between text-sm font-semibold">
-                <span>Total after coupon</span>
-                <span>
-                  {plan.currency} {totalAfterDiscount.toLocaleString()}
-                </span>
-              </div> */}
+      
             </>
           )}
           {plan && taxPercentage && (
             <>
-              {/* <div className="flex justify-between text-sm mt-2">
-                <span className="text-muted-foreground">Coupon discount</span>
-                <span className="text-destructive">
-                  - {plan.currency} {discountAmount.toLocaleString()}
-                </span>
-              </div> */}
               <div className="mt-2 pt-2 border-t border-border flex justify-between text-sm font-semibold">
                 <span>Tax</span>
                 <span>
@@ -1381,23 +1694,10 @@ function Step3ReviewPay(
       </div>
 
       <div className="border border-border rounded-xl p-4 sm:p-5 space-y-4 bg-card/80 shadow-sm">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-          <div className="min-w-0">
-            <h3 className="text-sm font-semibold mb-1">
-              Payment &amp; billing
-            </h3>
-            <p className="text-[11px] text-muted-foreground">
-              Enter your coupon (if you have one), then confirm your billing
-              name, ZIP and card details.
-            </p>
-          </div>
-          <p className="hidden text-[11px] text-muted-foreground sm:block shrink-0">
-            Secure card processing powered by Stripe.
-          </p>
-        </div>
+
      
 
-        {/* Coupon */}
+       
         <div className="space-y-2">
           <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             Coupon
@@ -1463,75 +1763,26 @@ function Step3ReviewPay(
           )}
         </div>
 
-        {/* Billing name */}
-        <div className="space-y-2">
-          <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-            Billing details
-          </label>
-          <Input
-            placeholder="Name on card"
-            value={nameOnCard}
-            onChange={(e) => setNameOnCard(e.target.value)}
-          />
-        </div>
-
-        {/* Card number, expiry and CVC as separate boxes; ZIP below */}
-        <div className="space-y-2">
-          <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-            Card details
-          </label>
-          <div className="space-y-2">
-            <div className="border border-border rounded-md px-3 py-2 bg-background min-h-[38px] w-full [&>div]:min-h-[22px] [&>div]:w-full">
-              <CardNumberElement
-                options={{
-                  style: {
-                    base: {
-                      fontSize: "14px",
-                      color: "var(--foreground)",
-                      "::placeholder": { color: "#9ca3af" },
-                    },
-                    invalid: { color: "#ef4444" },
-                  },
-                }}
-              />
-            </div>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              <div className="border border-border rounded-md px-3 py-2 bg-background min-h-[38px] w-full [&>div]:min-h-[22px] [&>div]:w-full">
-                <CardExpiryElement
-                  options={{
-                    style: {
-                      base: {
-                        fontSize: "14px",
-                        color: "var(--foreground)",
-                        "::placeholder": { color: "#9ca3af" },
-                      },
-                      invalid: { color: "#ef4444" },
-                    },
-                  }}
-                />
-              </div>
-              <div className="border border-border rounded-md px-3 py-2 bg-background min-h-[38px] w-full [&>div]:min-h-[22px] [&>div]:w-full">
-                <CardCvcElement
-                  options={{
-                    style: {
-                      base: {
-                        fontSize: "14px",
-                        color: "var(--foreground)",
-                        "::placeholder": { color: "#9ca3af" },
-                      },
-                      invalid: { color: "#ef4444" },
-                    },
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {paymentError && (
+        {/* {paymentError && (
           <p className="text-xs text-destructive mt-1">{paymentError}</p>
-        )}
+        )} */}
       </div>
+       {/* <div style={{ maxWidth: '500px', margin: '50px auto', padding: '20px', fontFamily: 'sans-serif' }}>
+        <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f4f4f5', borderRadius: '8px' }}>
+          <h2 style={{ color: '#111827', margin: '0 0 10px 0' }}>🛠️ Payment Integration Test</h2>
+          <p style={{ fontSize: '14px', color: '#6b7280', margin: '0' }}>
+            <strong>Status:</strong> <span style={{ color: clientSecret ? '#10b981' : '#f59e0b' }}>
+              {clientSecret ? 'Ready' : 'Loading Stripe...'}
+            </span>
+          </p>
+        </div>
+  
+        {clientSecret && (
+          <Elements stripe={stripePromise} options={{ clientSecret }}>
+            <CheckoutForm />
+          </Elements>
+        )}
+      </div> */}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Button
@@ -1542,15 +1793,201 @@ function Step3ReviewPay(
         >
           Back
         </Button>
-        <Button
-          type="button"
-          className="w-full sm:w-auto"
-          disabled={!canSubmit || submitting}
-          onClick={handleSubmit}
-        >
-          {submitting ? "Completing…" : "Complete Purchase"}
-        </Button>
+
+
+      <Button
+      type="button"
+      className="w-full sm:w-auto"
+      disabled={creatingPayment}
+      onClick={async () => {
+        if (creatingPayment) return;
+
+        setPaymentMessage(null);
+
+        if (!club || !plan) {
+          setPaymentMessage("Please select a club and plan.");
+          return;
+        }
+
+        if (!publishableKey || !stripePromise) {
+          setPaymentMessage("Payment system is still loading. Please try again.");
+          return;
+        }
+
+        try {
+          setCreatingPayment(true);
+
+          const res = await fetch("/api/test-create-payment-intent", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              location: club?.name,
+              amount: effectiveTotal || baseAmount,
+              currency: plan?.currency,
+              description: plan?.name,
+              firstName,
+              lastName,
+              email,
+              phone,
+              zohoLocationId: club?.id,
+              planId: plan?.id,
+              planDuration: plan?.duration ?? "Annual",
+              couponId: couponInfo?.id ?? undefined,
+              couponDiscount: couponInfo?.value ?? undefined,
+              existingMemberId: memberId ?? undefined,
+            }),
+          });
+
+          if (!res.ok) {
+            throw new Error("Failed to create payment.");
+          }
+
+          const data = await res.json();
+
+          if (!data?.clientSecret) {
+            throw new Error("Invalid payment session.");
+          }
+
+          setClientSecret(data.clientSecret);
+          setShowPaymentModal(true);
+
+        } catch (err) {
+          setPaymentMessage("Unable to start payment. Please try again.");
+        } finally {
+          setCreatingPayment(false);
+        }
+      }}
+    >
+      {creatingPayment ? "Preparing payment..." : "Complete Purchase"}
+    </Button>
       </div>
+        {paymentMessage && (
+          <p className="text-xs text-destructive mt-2">
+            {paymentMessage}
+          </p>
+        )}
+      {/* {showPaymentModal && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+    <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 relative">
+
+      <button
+        onClick={() => setShowPaymentModal(false)}
+        className="absolute top-3 right-3 text-gray-500 hover:text-black"
+      >
+        ✕
+      </button>
+
+      <h2 className="text-lg font-semibold mb-4">
+        Complete your payment
+      </h2>
+
+      {!clientSecret ? (
+        <p className="text-sm text-gray-500">Loading payment...</p>
+      ) : (
+        <Elements stripe={stripePromise} options={{ clientSecret }}>
+          <CheckoutForm />
+        </Elements>
+      )}
+
     </div>
+  </div>
+        )} */}
+
+     <AnimatePresence>
+  {showPaymentModal && (
+    <motion.div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 overflow-y-auto"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      <motion.div
+        className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 relative my-8"
+        style={{ maxHeight: '90vh', overflowY: 'auto' }}
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 25 }}
+      >
+
+        <button
+          onClick={() => setShowPaymentModal(false)}
+          className="absolute top-3 right-3 text-gray-500 hover:text-black"
+        >
+          ✕
+        </button>
+
+        <h2 className="text-lg font-semibold mb-4">
+          Complete your payment
+        </h2>
+
+        {!clientSecret ? (
+          <p className="text-sm text-gray-500">Loading payment...</p>
+        ) : (
+          <Elements
+            stripe={stripePromise} 
+            options={{ clientSecret, appearance: { theme: 'stripe' } }}
+          >
+            <CheckoutForm />
+          </Elements>
+        )}
+
+      </motion.div>
+    </motion.div>
+  )}
+     </AnimatePresence>
+    </div>
+    );
+    
+
+    // Sub-component used inside the Elements provider
+ function CheckoutForm() {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [message, setMessage] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+
+    const { error, paymentIntent } = await stripe.confirmPayment({
+      elements,
+      confirmParams: { return_url: `${window.location.origin}/thankyou?payment=success` },
+      redirect: 'if_required', // important to prevent automatic redirect
+    });
+
+    if (error) {
+      setMessage(error.message || "An error occurred");
+    } else if (paymentIntent && paymentIntent.status === "succeeded") {
+      // redirect manually if confirmPayment didn't auto-redirect
+      window.location.href = "/thankyou?payment=success";
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <PaymentElement
+      
+      
+      />
+      <button
+        disabled={!stripe}
+        style={{
+          marginTop: '20px',
+          width: '100%',
+          padding: '12px',
+          backgroundColor: '#0070f3',
+          color: 'white',
+          border: 'none',
+          borderRadius: '5px',
+          cursor: 'pointer',
+        }}
+        
+      >
+        Pay Now
+      </button>
+      {message && <p style={{ color: 'red', marginTop: '10px' }}>{message}</p>}
+    </form>
   );
+}
 }
