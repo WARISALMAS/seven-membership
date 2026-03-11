@@ -34,6 +34,7 @@ function mapPlanToMembership(item: SubscriptionPlanItem): Membership {
 
   const description = item.Plan_Description ?? ''
   const tax_percentage = typeof item.Tax_Percentage === 'number' ? item.Tax_Percentage : 0
+  const number_of_days = typeof item.Number_of_Days === 'number' ? item.Number_of_Days : 0
   const benefits = description
     ? description
         .split(/\n/)
@@ -41,7 +42,7 @@ function mapPlanToMembership(item: SubscriptionPlanItem): Membership {
         .filter(Boolean)
     : []
 
-  return { id, name, benefits, duration, price, currency, tax_percentage }
+  return { id, name, benefits, duration, price, currency, tax_percentage, number_of_days }
 }
 
 export interface SubscriptionPlansResult {

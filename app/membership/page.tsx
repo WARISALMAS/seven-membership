@@ -47,6 +47,7 @@ interface Plan {
   currency: string;
   duration?: "Annual" | "Pass";
   tax_percentage?: number; // ✅ add this
+  number_of_days?: number; // ✅ add this
 }
 
 type Gender = "male" | "female" | null;
@@ -82,8 +83,8 @@ function getStripePublishableKeyForClub(club?: Club | null): string {
     key = STRIPE_PK_DUBAI;
     bucket = "dubai";
   }
-  console.log("Selected Club: "+bucket);
-  console.log(key);
+ // console.log("Selected Club: "+bucket);
+  // console.log(key);
   return key;
 }
 
@@ -785,43 +786,89 @@ function Step2ChooseMembership(props: {
     { enabled: !!selectedClub?.name },
   );
 
+  // const allPlans: Plan[] =
+  //   data?.plans.map((m: import("@/lib/api/types").Membership) => {
+  //  let priceLabel = "";
+
+  // if (m.duration === "Annual") { 
+  // const monthly = Math.round((m.price / 12) * 100) / 100;
+  // priceLabel = `${m.currency} ${monthly.toLocaleString(undefined, {
+  //   minimumFractionDigits: 2,
+  //   maximumFractionDigits: 2,
+  // })} /month`;
+  // } else {
+  // const suffix = (() => {
+  //   const n = (m.name ?? "").toLowerCase();
+  //   if (n.includes("3 month")) return "/3 month";
+  //   if (n.includes("6 month")) return "/6 month";
+  //   if (n.includes("day")) return "/day";
+  //   if (n.includes("week")) return "/week";
+  //   if (n.includes("month")) return "/month";
+  //   return "/month";
+  // })();
+
+  // priceLabel = `${m.currency} ${m.price.toLocaleString()} ${suffix}`;
+  // }
+  //     return {
+  //       id: m.id,
+  //       brand,
+  //       name: m.name,
+  //       price: priceLabel,
+  //    //   price: `${m.currency} ${m.price.toLocaleString()} ${suffix}`,
+  //       annual_price:m.price,
+  //       description: m.benefits.join(", ") || m.duration,
+  //       amount: m.price,
+  //       currency: m.currency,
+  //       duration: m.duration as "Annual" | "Pass",
+  //       tax_percentage: m.tax_percentage, // ✅ add this
+  //       number_of_days: m.number_of_days, // ✅ add this
+  //     };
+  //   }) ?? [];
+console.log(data);
   const allPlans: Plan[] =
-    data?.plans.map((m: import("@/lib/api/types").Membership) => {
-   let priceLabel = "";
+  data?.plans.map((m: import("@/lib/api/types").Membership) => {
+    // Normalize duration
+    const duration = m.duration === "Annual" ? "Annual" : "Pass";
 
-  if (m.duration === "Annual") { 
-  const monthly = Math.round((m.price / 12) * 100) / 100;
-  priceLabel = `${m.currency} ${monthly.toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })} /month`;
-  } else {
-  const suffix = (() => {
-    const n = (m.name ?? "").toLowerCase();
-    if (n.includes("3 month")) return "/3 month";
-    if (n.includes("6 month")) return "/6 month";
-    if (n.includes("day")) return "/day";
-    if (n.includes("week")) return "/week";
-    if (n.includes("month")) return "/month";
-    return "/month";
-  })();
+    // Use number_of_days dynamically for Pass, or 365 for Annual
+    let number_of_days = duration === "Annual" ? 365 : m.number_of_days;
 
-  priceLabel = `${m.currency} ${m.price.toLocaleString()} ${suffix}`;
-  }
-      return {
-        id: m.id,
-        brand,
-        name: m.name,
-        price: priceLabel,
-     //   price: `${m.currency} ${m.price.toLocaleString()} ${suffix}`,
-        annual_price:m.price,
-        description: m.benefits.join(", ") || m.duration,
-        amount: m.price,
-        currency: m.currency,
-        duration: m.duration as "Annual" | "Pass",
-        tax_percentage: m.tax_percentage, // ✅ add this
-      };
-    }) ?? [];
+    // Only allow valid number_of_days
+    if (duration === "Pass" && ![30, 90, 180].includes(number_of_days)) {
+      number_of_days = 30; // fallback default
+    }
+
+    // Calculate priceLabel
+    let priceLabel = "";
+    if (duration === "Annual") {
+      const monthly = Math.round((m.price / 12) * 100) / 100;
+      priceLabel = `${m.currency} ${monthly.toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })} /month`;
+    } else if (duration === "Pass") {
+      const months = number_of_days / 30; // 30→1, 90→3, 180→6
+      const monthly = Math.round((m.price / months) * 100) / 100;
+      priceLabel = `${m.currency} ${monthly.toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })} /month`;
+    }
+
+    return {
+      id: m.id,
+      brand,
+      name: m.name,
+      price: priceLabel,
+      annual_price: m.price,
+      description: m.benefits.join(", ") || duration,
+      amount: m.price,
+      currency: m.currency,
+      duration: duration as "Annual" | "Pass",
+      tax_percentage: m.tax_percentage,
+      number_of_days,
+    };
+  }) ?? [];
 
   // For Dubai location: only show Annual plans (no Pass tab)
   const isDubai = selectedClub?.name === "Dubai";
@@ -1960,7 +2007,13 @@ function Step3ReviewPay(
           if (error) {
             setMessage(error.message || "An error occurred");
           } else if (paymentIntent && paymentIntent.status === "succeeded") {
-            window.location.href = "/thankyou?payment=success";
+                const paymentReference = paymentIntent.id; // PaymentIntent ID
+                const currency = paymentIntent.currency;
+
+                console.log("Payment successful!");
+                console.log("Reference (PaymentIntent ID):", paymentReference);
+                console.log("Amount received:",currency);
+          //  window.location.href = "/thankyou?payment=success";
           }
         };
 

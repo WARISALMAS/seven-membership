@@ -34,6 +34,7 @@ export interface Membership {
   price: number;
   currency: string;
   tax_percentage: number;
+  number_of_days: number;
 }
 
 /** Signup – POST /api/v1/members/auth/signup */

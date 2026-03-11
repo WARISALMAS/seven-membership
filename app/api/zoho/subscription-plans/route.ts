@@ -73,7 +73,7 @@ export async function GET(request: Request) {
     const url = new URL(baseUrl)
     url.searchParams.set(
       'fields',
-      'Tax_Percentage, Name,App_Display_Name,Status,ShowOnApp,Brand,Location,Gender,Plan_Category,Price,Setup_Fee,Currency,Plan_Description,Subscription_Frequency',
+      'Number_of_Days, Tax_Percentage, Name,App_Display_Name,Status,ShowOnApp,Brand,Location,Gender,Plan_Category,Price,Setup_Fee,Currency,Plan_Description,Subscription_Frequency',
     )
     if (location) {
       url.searchParams.set('criteria', `Location:equals:${location}`)
