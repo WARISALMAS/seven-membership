@@ -33,7 +33,7 @@ import 'react-international-phone/style.css';
 
 type Step = 1 | 2 | 3 |4;
 
-type Brand = "Seven" | "Gray" | "";
+type Brand = "Seven" | "";
 
 type Club = Location & { brand: Brand };
 
@@ -48,6 +48,7 @@ interface Plan {
   duration?: "Annual" | "Pass";
   tax_percentage?: number; // ✅ add this
   number_of_days?: number; // ✅ add this
+  planType?:"";
 }
 
 type Gender = "male" | "female" | null;
@@ -828,6 +829,31 @@ const allPlans: Plan[] =
       number_of_days = 30; // fallback default
     }
 
+    // Determine plan type
+    let planType = "";
+    switch (number_of_days) {
+      case 1:
+        planType = "Day Pass";
+        break;
+      case 7:
+        planType = "Weekly Pass";
+        break;
+      case 30:
+        planType = "Monthly Pass";
+        break;
+      case 90:
+        planType = "3 Month Pass";
+        break;
+      case 180:
+        planType = "6 Month Pass";
+        break;
+      case 365:
+        planType = "Annually";
+        break;
+      default:
+        planType = "Pass";
+    }
+
     // Calculate priceLabel
     let priceLabel = "";
     if (duration === "Annual") {
@@ -843,8 +869,7 @@ const allPlans: Plan[] =
           maximumFractionDigits: 2,
         })} /day`;
       } else if (number_of_days === 7) {
-        const weekly = Math.round((m.price / 7) * 100) / 100;
-        priceLabel = `${m.currency} ${weekly.toLocaleString(undefined, {
+        priceLabel = `${m.currency} ${m.price.toLocaleString(undefined, {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2,
         })} /week`;
@@ -862,6 +887,7 @@ const allPlans: Plan[] =
       id: m.id,
       brand,
       name: m.name,
+      planType, // <-- added
       price: priceLabel,
       annual_price: m.price,
       description: m.benefits.join(", ") || duration,
@@ -1199,7 +1225,7 @@ function Step3ReviewPay(
         <div>
           <h2 className="text-2xl font-semibold mb-1">You&apos;re all set.</h2>
           <p className="text-sm text-muted-foreground">
-            Your payment was successful and your membership has been created.
+            Your membership has been created.
           </p>
         </div>
         <Button type="button" className="w-full" onClick={onRestart}>
@@ -1207,7 +1233,7 @@ function Step3ReviewPay(
         </Button>
             <div className="mt-4 p-4 border border-dashed border-gray-300 rounded-md text-center">
               <p className="text-sm mb-2">
-                Download our app using the QR code:
+                To complete your onboarding and access the club, download the SEVEN+ app.
               </p>
               <img
                 src="/images/seven-qr-code.png" 
@@ -1342,7 +1368,7 @@ function Step3ReviewPay(
          </div>
           <div className="flex justify-between text-sm mb-2">
             <span className="text-muted-foreground">Club</span>
-             <span>{club ? `${club.name} • ${club.city}` : "—"}</span>
+             <span>{club ? `${club.name}` : "—"}</span>
           </div>
           <div className="flex justify-between text-sm mb-2">
              <span className="text-muted-foreground">Plan</span>
@@ -1350,7 +1376,7 @@ function Step3ReviewPay(
            </div>
           <div className="flex justify-between text-sm">
              <span className="text-muted-foreground">Sub Total</span>
-            <span>{ plan?.currency } { baseAmount }</span>
+            <span>{ plan?.currency } { baseAmount } </span>
           </div>
              {plan && hasDiscount && (
             <>
@@ -1380,7 +1406,7 @@ function Step3ReviewPay(
                 <span>
                
               {plan && effectiveTotal > 0
-                  ? `${plan.currency} ${effectiveTotal.toLocaleString()} annually`
+                  ? `${plan.currency} ${effectiveTotal.toLocaleString()} / ${plan.planType}`
                   : plan
                     ? plan.price
                     : "—"}
