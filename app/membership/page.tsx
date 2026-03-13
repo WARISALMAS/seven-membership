@@ -48,7 +48,7 @@ interface Plan {
   duration?: "Annual" | "Pass";
   tax_percentage?: number; // ✅ add this
   number_of_days?: number; // ✅ add this
-  planType?:"";
+  planType?:string;
 }
 
 type Gender = "male" | "female" | null;
@@ -693,7 +693,7 @@ function Step1SelectClub(
           <div className="flex w-full items-start gap-2 mt-4">
             <div className="flex-1 space-y-1">
               <Input
-                placeholder="Enter 6-digit OTP"
+                placeholder="Enter 6-digit OTP sent to email"
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
                 maxLength={6}
@@ -777,44 +777,6 @@ function Step2ChooseMembership(props: {
     { enabled: !!selectedClub?.name },
   );
 
-  // const allPlans: Plan[] =
-  //   data?.plans.map((m: import("@/lib/api/types").Membership) => {
-  //  let priceLabel = "";
-
-  // if (m.duration === "Annual") { 
-  // const monthly = Math.round((m.price / 12) * 100) / 100;
-  // priceLabel = `${m.currency} ${monthly.toLocaleString(undefined, {
-  //   minimumFractionDigits: 2,
-  //   maximumFractionDigits: 2,
-  // })} /month`;
-  // } else {
-  // const suffix = (() => {
-  //   const n = (m.name ?? "").toLowerCase();
-  //   if (n.includes("3 month")) return "/3 month";
-  //   if (n.includes("6 month")) return "/6 month";
-  //   if (n.includes("day")) return "/day";
-  //   if (n.includes("week")) return "/week";
-  //   if (n.includes("month")) return "/month";
-  //   return "/month";
-  // })();
-
-  // priceLabel = `${m.currency} ${m.price.toLocaleString()} ${suffix}`;
-  // }
-  //     return {
-  //       id: m.id,
-  //       brand,
-  //       name: m.name,
-  //       price: priceLabel,
-  //    //   price: `${m.currency} ${m.price.toLocaleString()} ${suffix}`,
-  //       annual_price:m.price,
-  //       description: m.benefits.join(", ") || m.duration,
-  //       amount: m.price,
-  //       currency: m.currency,
-  //       duration: m.duration as "Annual" | "Pass",
-  //       tax_percentage: m.tax_percentage, // ✅ add this
-  //       number_of_days: m.number_of_days, // ✅ add this
-  //     };
-  //   }) ?? [];
 const allPlans: Plan[] =
   data?.plans.map((m: import("@/lib/api/types").Membership) => {
     // Normalize duration
@@ -855,32 +817,41 @@ const allPlans: Plan[] =
     }
 
     // Calculate priceLabel
-    let priceLabel = "";
-    if (duration === "Annual") {
-      const monthly = Math.round((m.price / 12) * 100) / 100;
-      priceLabel = `${m.currency} ${monthly.toLocaleString(undefined, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      })} /month`;
-    } else if (duration === "Pass") {
-      if (number_of_days === 1) {
-        priceLabel = `${m.currency} ${m.price.toLocaleString(undefined, {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })} /day`;
-      } else if (number_of_days === 7) {
-        priceLabel = `${m.currency} ${m.price.toLocaleString(undefined, {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })} /week`;
-      } else {
-        const months = number_of_days / 30; // 30→1, 90→3, 180→6
-        const monthly = Math.round((m.price / months) * 100) / 100;
-        priceLabel = `${m.currency} ${monthly.toLocaleString(undefined, {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })} /month`;
-      }
+        let priceLabel = "";
+
+          if (duration === "Annual") {
+            const monthly = Math.ceil(m.price / 12); // round up, no decimals
+
+            priceLabel = `${m.currency} ${monthly.toLocaleString()} /month`;
+
+          } else if (duration === "Pass") {
+
+            if (number_of_days === 1) {
+
+              priceLabel = `${m.currency} ${Math.ceil(m.price).toLocaleString()} /day`;
+
+            } else if (number_of_days === 7) {
+
+              priceLabel = `${m.currency} ${Math.ceil(m.price).toLocaleString()} /week`;
+
+            } else if (number_of_days === 90) {
+
+              // do not divide
+              priceLabel = `${m.currency} ${Math.ceil(m.price).toLocaleString()} /3 months`;
+
+            } else if (number_of_days === 180) {
+
+              // do not divide
+              priceLabel = `${m.currency} ${Math.ceil(m.price).toLocaleString()} /6 months`;
+
+            } else {
+
+              const months = number_of_days / 30;
+              const monthly = Math.ceil(m.price / months); // round up only
+
+              priceLabel = `${m.currency} ${monthly.toLocaleString()} /month`;
+            }
+
     }
 
     return {
