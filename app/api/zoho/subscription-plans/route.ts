@@ -180,8 +180,8 @@ export async function GET(request: Request) {
         price: p.Price,
       })),
     })
-   console.log("data =========================");
-   console.log(data)
+  //  console.log("data =========================");
+  //  console.log(data)
     return NextResponse.json({ data })
   } catch (err) {
     console.error('Zoho subscription plans error', err)

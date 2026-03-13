@@ -393,13 +393,13 @@ function Step1SelectClub(
       if (!selectedClub) return;
 
       // If we already have a Zoho contact id for this flow, skip re-creating.
-      if (zohoContactId) {
-        onNext();
-        return;
-      }
-      setCreatingContact(true);
-      setContactError(null);
-
+      // if (zohoContactId) {
+      //   onNext();
+      //   return;
+      // }
+  
+        setCreatingContact(true);
+        setContactError(null);
       try {
         const res = await fetch("/api/zoho/contacts", {
           method: "POST",
@@ -443,9 +443,9 @@ function Step1SelectClub(
           return;
         }
 
-        // Continue flow
         onContactCreated(memberId);
-        onNext();
+    
+       sendOtp(memberId);
       } catch (err) {
         setContactError(
           "We could not save your details. Please try again later."
@@ -454,19 +454,42 @@ function Step1SelectClub(
         setCreatingContact(false);
       }
     }
-    async function sendOtp(email: string) {
+    async function sendOtp(id: string) {
       // Generate 6-digit OTP
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      setGeneratedOtp(otp);
-      setOtpSent(true); // Show OTP input
+      const otp = Math.floor(1000 + Math.random() * 9000).toString();
+   
+             setGeneratedOtp(otp);
+             setOtpSent(true); // Show OTP input
       try {
-        const res = await fetch("/api/zoho/zeptomail", {
+        // const res = await fetch("/api/zoho/zeptomail", {
+        //   method: "POST",
+        //   headers: { "Content-Type": "application/json" },
+        //   body: JSON.stringify({ email, otp }),
+        // });
+
+        // if (!res.ok) throw new Error("Failed to send OTP");
+          const res = await fetch("/api/zoho/sendcrmotp", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, otp }),
+          body: JSON.stringify({
+          id,
+          otp
+          }),
         });
 
-        if (!res.ok) throw new Error("Failed to send OTP");
+      const json: any = await res.json().catch(() => ({}));
+
+      const first = Array.isArray(json?.data) ? json.data[0] : null;
+            if (!res.ok) {
+              if (!res.ok) throw new Error("Failed to send OTP");
+            }
+
+            // Zoho error inside response
+            if (!first || first.status !== "success") {
+            if (!res.ok) throw new Error("Failed to send OTP");
+            }
+        // Success
+      
   
       } catch (err) {
         console.log("Error sending OTP. Please try again.");
@@ -476,7 +499,7 @@ function Step1SelectClub(
       //
       if (otp === generatedOtp) {
         setOtpVerified(true);
-        handleCreateContact(); // Proceed to create contact in Zoho
+        onNext();
       } else {
             setContactError(
             "Invalid OTP. Please try again."
@@ -693,10 +716,10 @@ function Step1SelectClub(
           <div className="flex w-full items-start gap-2 mt-4">
             <div className="flex-1 space-y-1">
               <Input
-                placeholder="Enter 6-digit OTP sent to email"
+                placeholder="Enter 4-digit OTP sent to email/whatsapp"
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
-                maxLength={6}
+                maxLength={4}
               />
            
             </div>
@@ -705,7 +728,7 @@ function Step1SelectClub(
               type="button"
               onClick={verifyOtpBeforeContact}
               className="h-11 px-6 font-semibold shadow-sm"
-              disabled={otp.length < 6 || creatingContact}
+              disabled={otp.length < 4 || creatingContact}
             >
               {creatingContact ? "Verifying..." : "Verify OTP"}
             </Button>
@@ -719,9 +742,10 @@ function Step1SelectClub(
         className="mt-6 w-full h-11 min-h-[44px]"
         disabled={creatingContact || otpSent}
         onClick={() => {
-        setAttempted(true); // ✅ trigger validation errors
+        setAttempted(true); 
          if (!isValid || !selectedClub) return;
-          sendOtp(email); // Step 1: send OTP
+         sendOtp(email); // Step 1: send OTP
+         handleCreateContact()
         }}
       >
         {creatingContact
